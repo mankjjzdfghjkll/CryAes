@@ -1,0 +1,13 @@
+// Créez un fichier .vscode/settings.json dans votre projet
+{
+    "cSpell.words": [
+        "ciphertext",
+        "Sbox",
+        "Aes",
+        "CryAes",
+        "plaintext",
+        "CBC",
+        "CTR",
+        "ECB"
+    ]
+}

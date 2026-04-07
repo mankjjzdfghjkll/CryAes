@@ -1,0 +1,231 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace CryAes
+{
+    /// <summary>
+    /// Représente la structure d'une solution Visual Studio
+    /// </summary>
+    public class VisualStudioSolution
+    {
+        public string FormatVersion { get; set; }
+        public string VisualStudioVersion { get; set; }
+        public string MinimumVisualStudioVersion { get; set; }
+        public List<Project> Projects { get; set; }
+        public List<SolutionConfiguration> Configurations { get; set; }
+        public Dictionary<string, Dictionary<string, ProjectConfiguration>> ProjectConfigurations { get; set; }
+        public bool HideSolutionNode { get; set; }
+
+        public VisualStudioSolution()
+        {
+            Projects = new List<Project>();
+            Configurations = new List<SolutionConfiguration>();
+            ProjectConfigurations = new Dictionary<string, Dictionary<string, ProjectConfiguration>>();
+        }
+    }
+
+    /// <summary>
+    /// Représente un projet dans la solution
+    /// </summary>
+    public class Project
+    {
+        public string TypeGuid { get; set; }
+        public string Name { get; set; }
+        public string Path { get; set; }
+        public string Guid { get; set; }
+
+        public Project(string typeGuid, string name, string path, string guid)
+        {
+            TypeGuid = typeGuid;
+            Name = name;
+            Path = path;
+            Guid = guid;
+        }
+
+        public override string ToString()
+        {
+            return $"Project(\"{TypeGuid}\") = \"{Name}\", \"{Path}\", \"{Guid}\"";
+        }
+    }
+
+    /// <summary>
+    /// Représente une configuration de solution (Debug|Any CPU, etc.)
+    /// </summary>
+    public class SolutionConfiguration
+    {
+        public string Name { get; set; }
+        public string Platform { get; set; }
+
+        public SolutionConfiguration(string name, string platform)
+        {
+            Name = name;
+            Platform = platform;
+        }
+
+        public override string ToString()
+        {
+            return $"{Name}|{Platform} = {Name}|{Platform}";
+        }
+    }
+
+    /// <summary>
+    /// Représente la configuration d'un projet spécifique
+    /// </summary>
+    public class ProjectConfiguration
+    {
+        public string ActiveConfig { get; set; }
+        public bool Build { get; set; }
+
+        public ProjectConfiguration(string activeConfig, bool build)
+        {
+            ActiveConfig = activeConfig;
+            Build = build;
+        }
+    }
+
+    /// <summary>
+    /// Parseur de fichier solution Visual Studio
+    /// </summary>
+    public class SolutionParser
+    {
+        /// <summary>
+        /// Crée la structure de la solution Aes/CryAes
+        /// </summary>
+        public static VisualStudioSolution CreateAesSolution()
+        {
+            var solution = new VisualStudioSolution
+            {
+                FormatVersion = "12.00",
+                VisualStudioVersion = "12.0.30110.0",
+                MinimumVisualStudioVersion = "10.0.40219.1",
+                HideSolutionNode = false
+            };
+
+            // Ajouter les projets
+            solution.Projects.Add(new Project(
+                "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}",  // C# project type
+                "Aes",
+                "Aes\\Aes.csproj",
+                "{7305E434-6807-4A7C-9B9D-141AC2D94CAB}"
+            ));
+
+            solution.Projects.Add(new Project(
+                "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}",  // C# project type
+                "UnitTestAes",
+                "UnitTestProject1\\UnitTestAes.csproj",
+                "{C99AC05C-628E-4428-A13C-1316E836D7A4}"
+            ));
+
+            // Ajouter les configurations
+            solution.Configurations.Add(new SolutionConfiguration("Debug", "Any CPU"));
+            solution.Configurations.Add(new SolutionConfiguration("Release", "Any CPU"));
+
+            // Configurations pour le projet Aes
+            var aesConfigs = new Dictionary<string, ProjectConfiguration>();
+            aesConfigs["Debug|Any CPU"] = new ProjectConfiguration("Debug|Any CPU", true);
+            aesConfigs["Release|Any CPU"] = new ProjectConfiguration("Release|Any CPU", true);
+            solution.ProjectConfigurations["{7305E434-6807-4A7C-9B9D-141AC2D94CAB}"] = aesConfigs;
+
+            // Configurations pour le projet UnitTestAes
+            var testConfigs = new Dictionary<string, ProjectConfiguration>();
+            testConfigs["Debug|Any CPU"] = new ProjectConfiguration("Debug|Any CPU", true);
+            testConfigs["Release|Any CPU"] = new ProjectConfiguration("Release|Any CPU", true);
+            solution.ProjectConfigurations["{C99AC05C-628E-4428-A13C-1316E836D7A4}"] = testConfigs;
+
+            return solution;
+        }
+
+        /// <summary>
+        /// Génère le contenu du fichier .sln à partir de l'objet solution
+        /// </summary>
+        public static string GenerateSolutionFile(VisualStudioSolution solution)
+        {
+            var content = new System.Text.StringBuilder();
+
+            // En-tête
+            content.AppendLine("Microsoft Visual Studio Solution File, Format Version " + solution.FormatVersion);
+            content.AppendLine("# Visual Studio 2013");
+            content.AppendLine("VisualStudioVersion = " + solution.VisualStudioVersion);
+            content.AppendLine("MinimumVisualStudioVersion = " + solution.MinimumVisualStudioVersion);
+
+            // Projets
+            foreach (var project in solution.Projects)
+            {
+                content.AppendLine($"Project(\"{project.TypeGuid}\") = \"{project.Name}\", \"{project.Path}\", \"{project.Guid}\"");
+                content.AppendLine("EndProject");
+            }
+
+            // Global section
+            content.AppendLine("Global");
+
+            // Configurations
+            content.AppendLine("\tGlobalSection(SolutionConfigurationPlatforms) = preSolution");
+            foreach (var config in solution.Configurations)
+            {
+                content.AppendLine($"\t\t{config.Name}|{config.Platform} = {config.Name}|{config.Platform}");
+            }
+            content.AppendLine("\tEndGlobalSection");
+
+            // Project configurations
+            content.AppendLine("\tGlobalSection(ProjectConfigurationPlatforms) = postSolution");
+            foreach (var projectConfig in solution.ProjectConfigurations)
+            {
+                var projectGuid = projectConfig.Key;
+                var configs = projectConfig.Value;
+
+                foreach (var config in configs)
+                {
+                    string configName = config.Key;
+                    var projConfig = config.Value;
+                    content.AppendLine($"\t\t{projectGuid}.{configName}.ActiveCfg = {projConfig.ActiveConfig}");
+                    if (projConfig.Build)
+                    {
+                        content.AppendLine($"\t\t{projectGuid}.{configName}.Build.0 = {projConfig.ActiveConfig}");
+                    }
+                }
+            }
+            content.AppendLine("\tEndGlobalSection");
+
+            // Solution properties
+            content.AppendLine("\tGlobalSection(SolutionProperties) = preSolution");
+            content.AppendLine($"\t\tHideSolutionNode = {(solution.HideSolutionNode ? "TRUE" : "FALSE")}");
+            content.AppendLine("\tEndGlobalSection");
+
+            content.AppendLine("EndGlobal");
+
+            return content.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Programme principal pour générer le fichier solution
+    /// </summary>
+    class Program
+    {
+        static void Main()
+        {
+            // Créer la structure de la solution
+            var solution = SolutionParser.CreateAesSolution();
+
+            // Générer le contenu du fichier .sln
+            string slnContent = SolutionParser.GenerateSolutionFile(solution);
+
+            // Afficher le contenu
+            Console.WriteLine("=== Contenu du fichier CryAes.sln ===\n");
+            Console.WriteLine(slnContent);
+
+            // Sauvegarder dans un fichier
+            string outputPath = @"C:\Users\PC\Downloads\CryAes\CryAes.sln";
+            System.IO.File.WriteAllText(outputPath, slnContent);
+            Console.WriteLine($"\nFichier sauvegardé : {outputPath}");
+
+            // Alternative : sauvegarder comme Aes.sln
+            string altPath = @"C:\Users\PC\Downloads\CryAes\Aes.sln";
+            System.IO.File.WriteAllText(altPath, slnContent);
+            Console.WriteLine($"Fichier sauvegardé : {altPath}");
+
+            Console.WriteLine("\nAppuyez sur une touche pour quitter...");
+            Console.ReadKey();
+        }
+    }
+}
